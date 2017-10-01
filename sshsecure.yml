@@ -1,0 +1,64 @@
+---
+- hosts: all
+  tasks:
+  - name: Remove root ssh login
+    replace:
+      destfile: /etc/ssh/sshd_config
+      regexp: '#PermitRootLogin yes'
+      replace: 'PermitRootLogin no'
+      backup: yes
+    register: removeroot
+
+  - name: Only allow sshv2
+    replace:
+      destfile: /etc/ssh/sshd_config
+      regexp: '#Protocol 2'
+      replace: 'Protocol 2'
+      backup: yes
+    when: removeroot|success
+    register: onlysshv2
+
+
+  - name: Set ssh keepalive
+    replace:
+      destfile: /etc/ssh/sshd_config
+      regexp: '#ClientAliveInterval 0'
+      replace: 'ClientAliveInterval 300'
+      backup: yes
+    when: onlysshv2|success
+    register: sshkeepalive
+
+  - name: Set ssh inactive
+    replace:
+      destfile: /etc/ssh/sshd_config
+      regexp: '#ClientAliveCountMax 3'
+      replace: 'ClientAliveCountMax 0'
+      backup: yes
+    when: sshkeepalive|success
+    register: sshinactive
+
+  - name: Ignore rhosts
+    replace:
+      destfile: /etc/ssh/sshd_config
+      regexp: '#IgnoreRhosts yes'
+      replace: 'IgnoreRhosts yes'
+      backup: yes
+    when: sshinactive|success
+    register: ignorerhosts
+
+  - name: Require ssh password
+    replace:
+      destfile: /etc/ssh/sshd_config
+      regexp: '#PermitEmptyPasswords no'
+      replace: 'PermitEmptyPasswords no'
+      backup: yes
+    when: ignorerhosts|success
+    notify:
+      - Restart sshd
+
+  handlers:
+  - name: Restart sshd
+    systemd:
+      name: sshd
+      state: restarted
+      daemon_reload: yes
