@@ -1,0 +1,46 @@
+---
+- hosts: server
+  tasks:
+  - name: Install firewalld
+    yum:
+      name: firewalld
+      state: latest
+    register: firewalldinstall
+    
+  - name: Start firewalld
+    service:
+      name: firewalld
+      state: started
+      enabled: yes 
+
+  - name: Allow ssh
+    firewalld:
+      service: ssh
+      permanent: true
+      state: enabled
+    when: firewalldinstall|success
+    register: allowssh
+
+  - name: Allow syslog
+    firewalld:
+      port: 514/tcp
+      permanent: true
+      state: enabled
+    when: allowssh|success
+    register: allowsyslog
+
+  - name: Allow ntp
+    firewalld:
+      service: ntp
+      permanent: true
+      state: enabled
+    when: allowsyslog|success
+    notify:
+      - Restart firewalld
+
+  handlers:
+  - name: Restart firewalld
+    systemd:
+      state: restarted
+      daemon_reload: yes
+      name: firewalld
