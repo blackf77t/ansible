@@ -1,0 +1,18 @@
+---
+- hosts: server
+  become: True
+  
+  tasks:
+  - name: TCP wrapper permitted    
+    lineinfile:
+      dest: /etc/hosts.allow
+      state: present
+      line: 'sshd,ntp,syslog: ALL'
+      insertbefore: EOF
+
+  - name: TCP wrapper denied     
+    lineinfile:
+      dest: /etc/hosts.deny
+      state: present
+      line: 'ALL: ALL'
+      insertbefore: EOF
