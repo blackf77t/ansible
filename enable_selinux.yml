@@ -1,0 +1,6 @@
+---
+- hosts: server
+  tasks:
+  - selinux:
+      policy: targeted
+      state: enforcing
